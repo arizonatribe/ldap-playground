@@ -2,14 +2,13 @@ var ldap = require('ldapjs'),
     fs = require('fs'),
     server = ldap.createServer();
 
-server.listen(1389, () => console.log('listning at ' + server.url));
+server.listen(1389, () => console.log(`LDAP server listening at ${server.url}`));
 
 server.bind('cn=root', (req, res, next) => {
   if (req.dn.toString() !== 'cn=root' || req.credentials !== 'secret')
     return next(new ldap.InvalidCredentialsError());
 
   res.end();
-
   return next();
 });
 
@@ -38,18 +37,18 @@ function loadPasswdFile(req, res, next) {
     req.users = {};
     data.split('\n')
       .filter(line => line && !/^#/.test(line) && line.split(':').length)
-      .forEach((line, i) => {
-        let record = line.split(':');
+      .forEach(line => {
+        let [cn, , uid, gid, description, homedirectory, shell] = line.split(':');
 
-        req.users[record[0]] = {
-          dn: `cn=${record[0]}, ou=users, o=myhost`,
+        req.users[cn] = {
+          dn: `cn=${cn}, ou=users, o=myhost`,
           attributes: {
-            cn: record[0],
-            uid: record[2],
-            gid: record[3],
-            description: record[4],
-            homedirectory: record[5],
-            shell: record[6] || '',
+            cn: cn,
+            uid: uid,
+            gid: gid,
+            description: description,
+            homedirectory: homedirectory,
+            shell: shell || '',
             objectclass: 'unixUser'
           }
         };
