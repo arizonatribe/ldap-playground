@@ -17,13 +17,55 @@ Then, install specific node tools listed in the project's manifest:
 
 ## Running the Project
 
-From the directory where this repository is cloned locally, execute the following command:
+From the directory where this repository is cloned locally, login as the "root" user and then execute the following command:
 
     npm start
 
 From another terminal on the same machine, you can execute queries against the LDAP server you started with the previous command, such as:
 
     ldapsearch -H ldap://localhost:1389 -x -D cn=root -w secret -LLL -b "o=myhost" objectclass=*
+
+## Creating, Modifying and Removing an LDAP User
+
+### Add
+
+Create a file containing the details for a new LDAP users, called `user.ldif`:
+
+    dn: cn=ldapjs, ou=users, o=myhost
+    objectClass: unixUser
+    cn: ldapjs
+    shell: /bin/bash
+    description: Created via ldapadd
+
+Now, execute the following command to create the user from that file's details:
+
+    ldapadd -H ldap://localhost:1389 -x -D cn=root -w secret -f ./user.ldif
+    
+Confirm the user was created successfully:
+
+    ldapsearch -H ldap://localhost:1389 -LLL -x -D cn=root -w secret -b "ou=users, o=myhost" cn=ldapjs
+
+### Modify
+
+Create another local file containing details for changes to the password for the LDAP user you just created:
+
+    dn: cn=ldapjs, ou=users, o=myhost
+    changetype: modify
+    replace: userPassword
+    userPassword: secret
+    -
+
+Now, execute those changes:
+
+    ldapmodify -H ldap://localhost:1389 -x -D cn=root -w secret -f ./passwd.ldif
+    
+To confirm, you should be able to login (even SSH) under those credentials
+
+### Remove
+
+And finally, you can clean up this experiment by removing this user you created:
+
+    ldapdelete -H ldap://localhost:1389 -x -D cn=root -w secret "cn=ldapjs, ou=users, o=myhost"
 
 For a full list of the `ldapsearch` query syntax see [this link](http://ldapjs.org/filters.html)
 
