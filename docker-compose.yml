@@ -1,0 +1,7 @@
+ldapserver:
+  image: ldap-playground
+  container_name: ldap-playground
+  ports:
+    - 1389:1389
+  volumes:
+    - ./:/app
