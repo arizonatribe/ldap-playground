@@ -50,6 +50,44 @@ server.add('ou=users, o=myhost', [authorize, loadPasswdFile], (req, res, next) =
   });
 });
 
+server.modify('ou=users, o=myhost', [authorize, loadPasswdFile], (req, res, next) => {
+  var user = req.dn.rdns[0].attrs,
+      modType = '';
+
+  if (!user.cn || !user.cn.value || !Object.keys(req.users).map(key => req.users[key].attributes.cn).includes(user.cn.value))
+    return next(new ldap.NoSuchObjectError(req.dn.toString()));
+
+  if (!req.changes.length)
+    return next(new ldap.ProtocolError('changes required'));
+
+  if (req.changes.some(change =>
+    (modType = change.modification) &&
+    /^(add|delete)$/.test(change.operation))
+  ) {
+    return next(new ldap.UnwillingToPerformError('only replace allowed'));    
+  }
+
+  if (req.changes.some(change => 
+    (modType = change.modification) &&
+    change.operation === 'replace' &&
+    (change.modification.type !== 'userpassword' ||
+    !change.modification.vals || !change.modification.vals.length))
+  ) {
+    return next(new ldap.UnwillingToPerformError('only password updates allowed'));
+  }
+  
+  let passwd = spawn('chpasswd', ['-c', 'MD5']);
+
+  passwd.stdin.end(`${user.cn.value}:${modType.vals[0]}`, 'utf8');
+  passwd.on('exit', code => {
+    if (code !== 0)
+      return next(new ldap.OperationsError(code));
+
+    res.end();
+    return next();
+  });
+});
+
 function ldapUserDetailsToOptions(user) {
   let opts = ['-m'];
 
