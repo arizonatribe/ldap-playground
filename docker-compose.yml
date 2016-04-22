@@ -1,7 +1,9 @@
 ldapserver:
   image: ldap-playground
   container_name: ldap-playground
+  command: npm start
   ports:
     - 1389:1389
   volumes:
     - ./:/app
+    - /app/node_modules

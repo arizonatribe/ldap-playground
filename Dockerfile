@@ -33,18 +33,17 @@ RUN source $NVM_DIR/nvm.sh \
     && ln -s $NVM_DIR/versions/node/v$NODE_VERSION/bin/npm /usr/bin/npm
 
 EXPOSE 1389
-VOLUME ["/app"]
-
-# Web application files (server and client)
-ADD ./src /app/src
-# Only file outside the app/ and docker/ directories needing to be copied over
-COPY package.json /app
-WORKDIR /app/src
 
 # Global npm CLI tools that are used in the scripts block of package.json
 RUN npm install -g node-inspector 
 
-# Execute the chain of build steps outlined in the scripts block of package.json
-RUN cd /app && npm install
+RUN mkdir /app
 
-CMD npm start
+# This is the only file outside the app/ and docker/ directories needing to be copied over
+COPY package.json /app
+# Web application files (server and client)
+COPY ./src /app
+# Execute the chain of build steps outlined in the scripts block of package.json
+RUN cd /app && npm install --production 
+
+WORKDIR /app
