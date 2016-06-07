@@ -1,49 +1,21 @@
-FROM centos:centos7
+FROM arizonatribe/centosnode
 MAINTAINER David Nunez <arizonatribe@gmail.com>
 
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-ENV TERM xterm
-
-# Install general dependencies
-RUN yum install -y \
-    curl \
-    epel-release \
-    gcc-c++ \
-    git \
-    jq \
-    make \
-    man \
-    vim \
-    wget
-
-# Default locations for Node Version Manager and version of Node to be installed
-ENV NODE_VERSION 5.10.1
-ENV NVM_DIR /.nvm
- 
-# Default version of Node to be installed; can be overridden
-RUN git clone https://github.com/creationix/nvm.git $NVM_DIR
-RUN echo ". $NVM_DIR/nvm.sh" >> /etc/bash.bashrc
-
-# Install node.js
-RUN source $NVM_DIR/nvm.sh \
-    && nvm install v$NODE_VERSION \
-    && nvm use v$NODE_VERSION \
-    && nvm alias default v$NODE_VERSION \
-    && ln -s $NVM_DIR/versions/node/v$NODE_VERSION/bin/node /usr/bin/node \
-    && ln -s $NVM_DIR/versions/node/v$NODE_VERSION/bin/npm /usr/bin/npm
+ENV APP_NAME ldap-playground
 
 EXPOSE 1389
+WORKDIR /var/lib/${APP_NAME}
+CMD ["/usr/bin/npm", "start"]
 
 # Global npm CLI tools that are used in the scripts block of package.json
 RUN npm install -g node-inspector 
 
-RUN mkdir /app
+# Copy NPM manifest here so that the `npm install` only happens when required dependencies change
+COPY package.json /var/lib/${APP_NAME}/package.json
+# Install node dependencies specific to this project
+RUN cd /var/lib/${APP_NAME} && npm install --production
 
-# This is the only file outside the app/ and docker/ directories needing to be copied over
-COPY package.json /app
-# Web application files (server and client)
-COPY ./src /app
-# Execute the chain of build steps outlined in the scripts block of package.json
-RUN cd /app && npm install --production 
-
-WORKDIR /app
+# Environment files, and linter/transpiler config files
+COPY .e* .b* /var/lib/${APP_NAME}/
+# Application-specific JavaScript files
+COPY src /var/lib/${APP_NAME}/src

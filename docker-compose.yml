@@ -1,9 +1,11 @@
-ldapserver:
-  image: ldap-playground
-  container_name: ldap-playground
-  command: npm start
-  ports:
-    - 1389:1389
-  volumes:
-    - ./:/app
-    - /app/node_modules
+version: "2"
+services:
+  ldapserver:
+    build: ./
+    image: ldap-playground:latest
+    container_name: ldap-playground
+    ports:
+      - 1389:1389
+    volumes:
+      - ./src:/var/lib/ldap-playground/src
+      - /var/lib/ldap-playground/node_modules
